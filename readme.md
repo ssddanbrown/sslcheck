@@ -2,7 +2,7 @@
 
 A simple php script to check the expiry of SSL certificates.
 
-[![asciicast](https://asciinema.org/a/105703.png)](https://asciinema.org/a/105703)
+<a href="https://asciinema.org/a/105703" target="_blank"><img src="https://asciinema.org/a/105703.png" width="480"/></a>
 
 ### Requirements
 
