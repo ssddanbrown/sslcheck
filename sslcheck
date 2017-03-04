@@ -1,10 +1,11 @@
 #!/usr/bin/env php
 <?php
 
+error_reporting(E_ERROR | E_PARSE);
+
 function getCert($domain) {
     $g = stream_context_create (array("ssl" => array("capture_peer_cert" => true)));
-    $r = stream_socket_client("ssl://{$domain}:443", $errno, $errstr, 30,
-        STREAM_CLIENT_CONNECT, $g);
+    $r = stream_socket_client("ssl://{$domain}:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $g);
     $cont = stream_context_get_params($r);
     return openssl_x509_parse($cont["options"]["ssl"]["peer_certificate"]);
 }
@@ -31,6 +32,7 @@ if ($domainCount === 0) {
 
 $now = new DateTime();
 $expiringSoon = [];
+$errors = [];
 
 echo "\e[34m\n";
 echo "------------------------------------------------------------\n";
@@ -41,6 +43,12 @@ echo "\e[0m\n";
 
 foreach ($domains as $domain) {
     $cert = getCert($domain);
+
+    if (!$cert) {
+        $errors[] =  $domain . " :: FAILED TO GET CERTIFICATE INFORMATION\n";
+        continue;
+    }
+
     $validFrom = new DateTime("@" . $cert['validFrom_time_t']);
     $validTo = new DateTime("@" . $cert['validTo_time_t']);
     $diff = $now->diff($validTo);
@@ -61,3 +69,10 @@ echo $expiringCount . ' of ' . $domainCount . ' domain' . ($domainCount > 1 ? 's
 echo "------------------------------------------------------------\n";
 echo "\e[0m\n";
 
+if (count($errors) > 0) {
+    echo "\e[31m";
+    echo "------------------------------------------------------------\n";
+    echo "Errors:\n\n" . implode("\n", $errors);
+    echo "------------------------------------------------------------\n";
+    echo "\e[0m\n";
+}
