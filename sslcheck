@@ -1,0 +1,63 @@
+#!/usr/bin/env php
+<?php
+
+function getCert($domain) {
+    $g = stream_context_create (array("ssl" => array("capture_peer_cert" => true)));
+    $r = stream_socket_client("ssl://{$domain}:443", $errno, $errstr, 30,
+        STREAM_CLIENT_CONNECT, $g);
+    $cont = stream_context_get_params($r);
+    return openssl_x509_parse($cont["options"]["ssl"]["peer_certificate"]);
+}
+
+function getOutputColor($daysLeft) {
+    if ($daysLeft > 30) return "\e[32m";
+    if ($daysLeft > 15) return "\e[33m";
+    return "\e[31m";
+}
+
+$domains = array_slice($argv, 1);
+$domainCount = count($domains);
+
+if ($domainCount === 0) {
+    echo "\e[34m\n";
+    echo "------------------------------------------------------------\n";
+    echo "Domain SSL Checker \n";
+    echo "------------------------------------------------------------\n\n";
+    echo "Usage:\t\t sslcheck [DOMAINS]...  \n";
+    echo "Example:\t sslcheck www.example.com www.google.com  \n";
+    echo "\e[0m\n";
+    return;
+}
+
+$now = new DateTime();
+$expiringSoon = [];
+
+echo "\e[34m\n";
+echo "------------------------------------------------------------\n";
+echo 'Domain SSL Report for ' . $now->format('jS M Y') . "\n";
+echo "------------------------------------------------------------\n";
+echo "\e[0m\n"; 
+
+
+foreach ($domains as $domain) {
+    $cert = getCert($domain);
+    $validFrom = new DateTime("@" . $cert['validFrom_time_t']);
+    $validTo = new DateTime("@" . $cert['validTo_time_t']);
+    $diff = $now->diff($validTo);
+    $daysLeft = $diff->invert ? 0 : $diff->days;
+    if ($daysLeft <= 15) $expiringSoon[] = $domain;
+    echo getOutputColor($daysLeft);
+    echo $domain . "\n";
+    echo "\tValid From:\t " . $validFrom->format('jS M Y') . ' (' . $validFrom->format('Y-m-d H:i:s') . ")\n";
+    echo "\tValid To:\t " . $validTo->format('jS M Y') . ' (' . $validTo->format('Y-m-d H:i:s') . ")\n";
+    echo "\tDays Left:\t " . $daysLeft . "\n";
+    echo "\e[0m\n";
+}
+
+$expiringCount = count($expiringSoon);
+echo "\e[34m";
+echo "------------------------------------------------------------\n";
+echo $expiringCount . ' of ' . $domainCount . ' domain' . ($domainCount > 1 ? 's':'') . ' expired or expiring soon' . "\n";
+echo "------------------------------------------------------------\n";
+echo "\e[0m\n";
+
