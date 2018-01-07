@@ -3,8 +3,19 @@
 
 error_reporting(E_ERROR | E_PARSE);
 
-function getCert($domain) {
-    $g = stream_context_create (array("ssl" => array("capture_peer_cert" => true)));
+function getIps($domain) {
+    $ips = [];
+    $dnsRecords = dns_get_record($domain, DNS_A);
+    foreach ($dnsRecords as $record) {
+        if (isset($record['ip'])) {
+            $ips[] = $record['ip'];
+        }
+    }
+    return $ips;
+}
+
+function getCert($ip, $domain) {
+    $g = stream_context_create (["ssl" => ["capture_peer_cert" => true], 'socket' => ['bindto' => $ip]]);
     $r = stream_socket_client("ssl://{$domain}:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $g);
     $cont = stream_context_get_params($r);
     return openssl_x509_parse($cont["options"]["ssl"]["peer_certificate"]);
@@ -33,6 +44,7 @@ if ($domainCount === 0) {
 $now = new DateTime();
 $expiringSoon = [];
 $errors = [];
+$certCount = 0;
 
 echo "\e[34m\n";
 echo "------------------------------------------------------------\n";
@@ -42,30 +54,37 @@ echo "\e[0m\n";
 
 
 foreach ($domains as $domain) {
-    $cert = getCert($domain);
+    $ips = getIps($domain);
 
-    if (!$cert) {
-        $errors[] =  $domain . " :: FAILED TO GET CERTIFICATE INFORMATION\n";
-        continue;
+    foreach ($ips as $ip) {
+        $certCount++;
+        $cert = getCert($ip, $domain);
+
+        if (!$cert) {
+            $errors[] =  $domain . '@' . $IP . " :: FAILED TO GET CERTIFICATE INFORMATION\n";
+            continue;
+        }
+
+        $validFrom = new DateTime("@" . $cert['validFrom_time_t']);
+        $validTo = new DateTime("@" . $cert['validTo_time_t']);
+        $diff = $now->diff($validTo);
+        $daysLeft = $diff->invert ? 0 : $diff->days;
+        if ($daysLeft <= 15) $expiringSoon[] = $domain;
+        echo getOutputColor($daysLeft);
+        echo $domain . (count($ips) > 1 ? " ($ip)" : "") . "\n";
+        echo "\tValid From:\t " . $validFrom->format('jS M Y') . ' (' . $validFrom->format('Y-m-d H:i:s') . ")\n";
+        echo "\tValid To:\t " . $validTo->format('jS M Y') . ' (' . $validTo->format('Y-m-d H:i:s') . ")\n";
+        echo "\tDays Left:\t " . $daysLeft . "\n";
+        echo "\e[0m\n";  
     }
 
-    $validFrom = new DateTime("@" . $cert['validFrom_time_t']);
-    $validTo = new DateTime("@" . $cert['validTo_time_t']);
-    $diff = $now->diff($validTo);
-    $daysLeft = $diff->invert ? 0 : $diff->days;
-    if ($daysLeft <= 15) $expiringSoon[] = $domain;
-    echo getOutputColor($daysLeft);
-    echo $domain . "\n";
-    echo "\tValid From:\t " . $validFrom->format('jS M Y') . ' (' . $validFrom->format('Y-m-d H:i:s') . ")\n";
-    echo "\tValid To:\t " . $validTo->format('jS M Y') . ' (' . $validTo->format('Y-m-d H:i:s') . ")\n";
-    echo "\tDays Left:\t " . $daysLeft . "\n";
-    echo "\e[0m\n";
 }
 
 $expiringCount = count($expiringSoon);
 echo "\e[34m";
 echo "------------------------------------------------------------\n";
-echo $expiringCount . ' of ' . $domainCount . ' domain' . ($domainCount > 1 ? 's':'') . ' expired or expiring soon' . "\n";
+echo "$expiringCount of $certCount certificate" . ($certCount > 1 ? 's':'') 
+    ." across $domainCount domain".($domainCount > 1 ? 's':'')." expired or expiring soon\n";
 echo "------------------------------------------------------------\n";
 echo "\e[0m\n";
 
