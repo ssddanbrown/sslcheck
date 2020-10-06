@@ -5,17 +5,20 @@ error_reporting(E_ERROR | E_PARSE);
 
 function getIps($domain) {
     $ips = [];
-    $dnsRecords = dns_get_record($domain, DNS_A);
+    $dnsRecords = dns_get_record($domain, DNS_A + DNS_AAAA);
     foreach ($dnsRecords as $record) {
         if (isset($record['ip'])) {
             $ips[] = $record['ip'];
+        }
+        if (isset($record['ipv6'])) {
+            $ips[] = '[' . $record['ipv6'] . ']'; // bindto of 'stream_context_create' uses this format of ipv6
         }
     }
     return $ips;
 }
 
 function getCert($ip, $domain) {
-    $g = stream_context_create (["ssl" => ["capture_peer_cert" => true], 'socket' => ['bindto' => $ip]]);
+    $g = stream_context_create(["ssl" => ["capture_peer_cert" => true], 'socket' => ['bindto' => $ip]]);
     $r = stream_socket_client("ssl://{$domain}:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $g);
     $cont = stream_context_get_params($r);
     return openssl_x509_parse($cont["options"]["ssl"]["peer_certificate"]);
@@ -56,12 +59,16 @@ echo "\e[0m\n";
 foreach ($domains as $domain) {
     $ips = getIps($domain);
 
+    if (count($ips) === 0) {
+        $errors[] = $domain . " :: FAILED TO FIND SERVER IP\n";
+    }
+
     foreach ($ips as $ip) {
         $certCount++;
         $cert = getCert($ip, $domain);
 
         if (!$cert) {
-            $errors[] =  $domain . '@' . $IP . " :: FAILED TO GET CERTIFICATE INFORMATION\n";
+            $errors[] =  $domain . '@' . $ip . " :: FAILED TO GET CERTIFICATE INFORMATION\n";
             continue;
         }
 

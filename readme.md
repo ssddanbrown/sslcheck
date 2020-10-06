@@ -19,11 +19,13 @@ This script has been tested only on Ubuntu 16.04+ using PHP7.
 
 If you can't execute the script directly you may need to envoke the script via php (`php sslcheck www.example.com`);
 
-You can check mutiple domains by listing them all out when running the script:
+You can check multiple domains by listing them all out when running the script:
 
 ```
 sslcheck www.google.com www.example.com www.github.com
 ```
+
+If a domain is found to have multiple A or AAAA records then each will be checked individually and the IP will be shown alongside the domain in the output. 
 
 #### Usage via Email
 
