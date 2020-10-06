@@ -44,7 +44,7 @@ if ($domainCount === 0) {
     return;
 }
 
-$now = new DateTime();
+$now = new DateTime('now', new DateTimeZone('UTC'));
 $expiringSoon = [];
 $errors = [];
 $certCount = 0;
