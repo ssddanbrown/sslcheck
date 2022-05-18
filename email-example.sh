@@ -8,12 +8,12 @@
 
 ## CONFIG
 #############
-
+# ./sslcheck www.gorro.com.ar tienda.gorro.com.ar www.tresdoce.com.ar www.estudiofluk.com.ar apicedes.tresdoce.com.ar www.estudiohamaca.com.ar www.adipol.com.ar jenkins.tresdoce.com.ar static-pre.tresdoce.com.ar static.tresdoce.com.ar
 # Set the domains you want to check, Space separated.
-DOMAINS="example.com google.com reddit.com"
+DOMAINS="www.gorro.com.ar tienda.gorro.com.ar www.tresdoce.com.ar www.estudiofluk.com.ar apicedes.tresdoce.com.ar www.estudiohamaca.com.ar www.adipol.com.ar jenkins.tresdoce.com.ar static-pre.tresdoce.com.ar static.tresdoce.com.ar"
 
 # Set the email address you want to send the results to
-EMAIL="myemail@example.com"
+EMAIL="mdelgado@tresdoce.com.ar"
 
 
 ## SCRIPT

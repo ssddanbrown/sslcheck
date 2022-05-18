@@ -9,12 +9,15 @@ on:
 permissions:
   contents: read
 
+env:
+  TD_DOMAINS: ${{TD_DOMAINS}}
+
 jobs:
   build:
 
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1    
+    - uses: actions/checkout@v1
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -23,7 +26,7 @@ jobs:
 
     - name: test sslcheck
       run: |
-        ./sslcheck www.gorro.com.ar tienda.gorro.com.ar www.tresdoce.com.ar www.estudiofluk.com.ar apicedes.tresdoce.com.ar www.estudiohamaca.com.ar www.adipol.com.ar jenkins.tresdoce.com.ar static-pre.tresdoce.com.ar static.tresdoce.com.ar
+        ./sslcheck ${TD_DOMAINS}
     # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
     # Docs: https://getcomposer.org/doc/articles/scripts.md
 
